@@ -1,0 +1,19 @@
+---
+title: "exerciseEfficacy"
+output: html_document
+bibliography: references.bib
+---
+
+[@author2013]
+
+```{r cache=TRUE}
+library(dplyr)
+training <- as_tibble(read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"))
+testing <- as_tibble(read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"))
+```
+
+```{r}
+head(training)
+head(testing)
+```
+
