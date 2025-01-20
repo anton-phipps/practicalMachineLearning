@@ -1,19 +1,41 @@
 ---
-title: "exerciseEfficacy"
+title: "Excercise Classification based on Activity Dataset"
 output: html_document
 bibliography: references.bib
 ---
 
-[@author2013]
+The data sets contain information measured to establish and categorize exercise activity based on various sensor data [@author2013]. 
+
+```{r}
+# import the required libraries
+library(dplyr)
+library(caret)
+```
+
 
 ```{r cache=TRUE}
-library(dplyr)
+# Get the training and testing datasets from online and save to variables
 training <- as_tibble(read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"))
 testing <- as_tibble(read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"))
+head(training)
 ```
 
 ```{r}
-head(training)
-head(testing)
+training <- training[, 8:ncol(training)]
+testing <- testing[, 8:ncol(testing)]
+```
+
+```{r}
+set.seed(42069)
+modelFit <- train(classe ~ ., data = training, model = "rpart", preProcess = "medianImpute")
+```
+
+```{r, eval=FALSE}
+# For strictly numeric methods,
+num_training <- training %>%
+        select(where(is.numeric), classe)
+num_testing <- testing %>%
+        select(where(is.numeric))
+model <- lm(factor(classe) ~ ., num_training)
 ```
 
