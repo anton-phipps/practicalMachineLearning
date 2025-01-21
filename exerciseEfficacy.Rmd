@@ -10,6 +10,7 @@ This is a study to analyze if you can predict exercise based on fitness readings
 
 Predictions became quite accurate using a bagged tree method when explicitly looking at the data which was present in both the training and testing sets
 while using principal component analysis to reduce the dimensionality. Due to this, the normal visual analysis is not present. There is an accuracy table shown.
+When doing validation, the accuracy is 99.95%.
 
 ```{r}
 # import the required libraries
@@ -24,7 +25,7 @@ library(rattle)
 training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
 testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
 ```
-
+## Clean the data set before training
 ```{r}
 # Remove near-zero variance predictors
 nzv <- nearZeroVar(training)
@@ -65,7 +66,7 @@ training <- training[inTrain, ]
 testing <- testing[, common_cols]
 ```
 
-
+## Train the model
 ```{r cache=TRUE}
 set.seed(42069)
 # Set seed for reproducibility
@@ -75,7 +76,7 @@ set.seed(42069)
 modelFit <- train(classe ~ ., data = training, method = "treebag", preProcess = c("pca"), na.action = na.pass)
 ```
 
-
+## Model details and statistics
 ```{r}
 # Summary of the final model
 compact_summary <- function(model) {
@@ -90,6 +91,7 @@ compact_summary(modelFit)
 confusionMatrix(predict(modelFit, newdata = validation), validation$classe)
 ```
 
+## Get the results from the testing dataset
 ```{r}
 # Predict on the testing dataset
 pred <- predict(modelFit, newdata = testing)

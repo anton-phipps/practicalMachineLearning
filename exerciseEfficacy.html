@@ -387,7 +387,8 @@ establish and categorize exercise activity based on various sensor data
 explicitly looking at the data which was present in both the training
 and testing sets while using principal component analysis to reduce the
 dimensionality. Due to this, the normal visual analysis is not present.
-There is an accuracy table shown.</p>
+There is an accuracy table shown. When doing validation, the accuracy is
+99.95%.</p>
 <pre class="r"><code># import the required libraries
 library(dplyr)</code></pre>
 <pre><code>## 
@@ -411,6 +412,9 @@ library(rattle)</code></pre>
 <pre class="r"><code># Get the training and testing datasets from online and save to variables
 training &lt;- read.csv(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;)
 testing &lt;- read.csv(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;)</code></pre>
+</div>
+<div id="clean-the-data-set-before-training" class="section level2">
+<h2>Clean the data set before training</h2>
 <pre class="r"><code># Remove near-zero variance predictors
 nzv &lt;- nearZeroVar(training)
 training &lt;- training[, -nzv]
@@ -448,12 +452,18 @@ validation &lt;- training[-inTrain, ]
 training &lt;- training[inTrain, ]
 
 testing &lt;- testing[, common_cols]</code></pre>
+</div>
+<div id="train-the-model" class="section level2">
+<h2>Train the model</h2>
 <pre class="r"><code>set.seed(42069)
 # Set seed for reproducibility
 set.seed(42069)
 
 # Train the model
 modelFit &lt;- train(classe ~ ., data = training, method = &quot;treebag&quot;, preProcess = c(&quot;pca&quot;), na.action = na.pass)</code></pre>
+</div>
+<div id="model-details-and-statistics" class="section level2">
+<h2>Model details and statistics</h2>
 <pre class="r"><code># Summary of the final model
 compact_summary &lt;- function(model) {
         cat(&quot;Model Method:&quot;, model$method, &quot;\n&quot;)
@@ -476,32 +486,35 @@ compact_summary(modelFit)</code></pre>
 ## Prediction   A   B   C   D   E
 ##          A 558   0   0   0   0
 ##          B   0 379   0   0   0
-##          C   0   0 342   0   1
+##          C   0   0 342   0   0
 ##          D   0   0   0 321   0
-##          E   0   0   0   0 359
+##          E   0   0   0   0 360
 ## 
 ## Overall Statistics
 ##                                      
-##                Accuracy : 0.9995     
-##                  95% CI : (0.9972, 1)
+##                Accuracy : 1          
+##                  95% CI : (0.9981, 1)
 ##     No Information Rate : 0.2847     
 ##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
 ##                                      
-##                   Kappa : 0.9994     
+##                   Kappa : 1          
 ##                                      
 ##  Mcnemar&#39;s Test P-Value : NA         
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            1.0000   1.0000   1.0000   1.0000   0.9972
-## Specificity            1.0000   1.0000   0.9994   1.0000   1.0000
-## Pos Pred Value         1.0000   1.0000   0.9971   1.0000   1.0000
-## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   0.9994
+## Sensitivity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Specificity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Pos Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
 ## Prevalence             0.2847   0.1934   0.1745   0.1638   0.1837
-## Detection Rate         0.2847   0.1934   0.1745   0.1638   0.1832
-## Detection Prevalence   0.2847   0.1934   0.1750   0.1638   0.1832
-## Balanced Accuracy      1.0000   1.0000   0.9997   1.0000   0.9986</code></pre>
+## Detection Rate         0.2847   0.1934   0.1745   0.1638   0.1837
+## Detection Prevalence   0.2847   0.1934   0.1745   0.1638   0.1837
+## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000</code></pre>
+</div>
+<div id="get-the-results-from-the-testing-dataset" class="section level2">
+<h2>Get the results from the testing dataset</h2>
 <pre class="r"><code># Predict on the testing dataset
 pred &lt;- predict(modelFit, newdata = testing)
 print(pred)</code></pre>
