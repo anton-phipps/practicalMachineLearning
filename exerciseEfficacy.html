@@ -377,8 +377,17 @@ Dataset</h1>
 </div>
 
 
-<p>The data sets contain information measured to establish and
-categorize exercise activity based on various sensor data <span class="citation">(Velloso et al. 2013)</span>.</p>
+<div id="summmary" class="section level2">
+<h2>Summmary</h2>
+<p>This is a study to analyze if you can predict exercise based on
+fitness readings. The data sets contain information measured to
+establish and categorize exercise activity based on various sensor data
+<span class="citation">(Velloso et al. 2013)</span>.</p>
+<p>Predictions became quite accurate using a bagged tree method when
+explicitly looking at the data which was present in both the training
+and testing sets while using principal component analysis to reduce the
+dimensionality. Due to this, the normal visual analysis is not present.
+There is an accuracy table shown.</p>
 <pre class="r"><code># import the required libraries
 library(dplyr)</code></pre>
 <pre><code>## 
@@ -392,34 +401,112 @@ library(dplyr)</code></pre>
 <pre class="r"><code>library(caret)</code></pre>
 <pre><code>## Loading required package: ggplot2</code></pre>
 <pre><code>## Loading required package: lattice</code></pre>
+<pre class="r"><code>library(ISLR)
+library(rattle)</code></pre>
+<pre><code>## Loading required package: tibble</code></pre>
+<pre><code>## Loading required package: bitops</code></pre>
+<pre><code>## Rattle: A free graphical interface for data science with R.
+## Version 5.5.1 Copyright (c) 2006-2021 Togaware Pty Ltd.
+## Type &#39;rattle()&#39; to shake, rattle, and roll your data.</code></pre>
 <pre class="r"><code># Get the training and testing datasets from online and save to variables
-training &lt;- as_tibble(read.csv(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;))
-testing &lt;- as_tibble(read.csv(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;))
-head(training)</code></pre>
-<pre><code>## # A tibble: 6 × 160
-##       X user_name raw_timestamp_part_1 raw_timestamp_part_2 cvtd_timestamp  
-##   &lt;int&gt; &lt;chr&gt;                    &lt;int&gt;                &lt;int&gt; &lt;chr&gt;           
-## 1     1 carlitos            1323084231               788290 05/12/2011 11:23
-## 2     2 carlitos            1323084231               808298 05/12/2011 11:23
-## 3     3 carlitos            1323084231               820366 05/12/2011 11:23
-## 4     4 carlitos            1323084232               120339 05/12/2011 11:23
-## 5     5 carlitos            1323084232               196328 05/12/2011 11:23
-## 6     6 carlitos            1323084232               304277 05/12/2011 11:23
-## # ℹ 155 more variables: new_window &lt;chr&gt;, num_window &lt;int&gt;, roll_belt &lt;dbl&gt;,
-## #   pitch_belt &lt;dbl&gt;, yaw_belt &lt;dbl&gt;, total_accel_belt &lt;int&gt;,
-## #   kurtosis_roll_belt &lt;chr&gt;, kurtosis_picth_belt &lt;chr&gt;,
-## #   kurtosis_yaw_belt &lt;chr&gt;, skewness_roll_belt &lt;chr&gt;,
-## #   skewness_roll_belt.1 &lt;chr&gt;, skewness_yaw_belt &lt;chr&gt;, max_roll_belt &lt;dbl&gt;,
-## #   max_picth_belt &lt;int&gt;, max_yaw_belt &lt;chr&gt;, min_roll_belt &lt;dbl&gt;,
-## #   min_pitch_belt &lt;int&gt;, min_yaw_belt &lt;chr&gt;, amplitude_roll_belt &lt;dbl&gt;, …</code></pre>
-<pre class="r"><code>training &lt;- training[, 8:ncol(training)]
-testing &lt;- testing[, 8:ncol(testing)]</code></pre>
-<pre class="r"><code># For strictly numeric methods,
-num_training &lt;- training %&gt;%
-        select(where(is.numeric), classe)
-num_testing &lt;- testing %&gt;%
-        select(where(is.numeric))
-model &lt;- lm(factor(classe) ~ ., num_training)</code></pre>
+training &lt;- read.csv(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;)
+testing &lt;- read.csv(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;)</code></pre>
+<pre class="r"><code># Remove near-zero variance predictors
+nzv &lt;- nearZeroVar(training)
+training &lt;- training[, -nzv]
+
+# Select relevant columns
+training &lt;- training[, 8:ncol(training)]
+testing &lt;- testing[, 8:ncol(testing)]
+
+# Remove the problem_id column from testing
+testing &lt;- testing %&gt;% select(-problem_id)
+
+# Remove columns with all NA values
+training &lt;- training %&gt;% select(where(~ !all(is.na(.))))
+testing &lt;- testing %&gt;% select(where(~ !all(is.na(.))))
+
+# Convert columns to numeric, except the last column in training which is &#39;classe&#39;
+training &lt;- training %&gt;%
+        mutate(across(
+                -ncol(training),
+                as.numeric
+        ))
+
+# Ensure &#39;classe&#39; is a factor in training
+training$classe &lt;- factor(training$classe)
+
+# Identify common columns between training and testing datasets
+common_cols &lt;- intersect(names(training), names(testing))
+
+# Select common columns from both datasets
+training &lt;- training[, c(common_cols, &quot;classe&quot;)]
+
+# Split training for actual training and validation
+inTrain &lt;- createDataPartition(y = training$classe, p = 0.9, list = FALSE)
+validation &lt;- training[-inTrain, ]
+training &lt;- training[inTrain, ]
+
+testing &lt;- testing[, common_cols]</code></pre>
+<pre class="r"><code>set.seed(42069)
+# Set seed for reproducibility
+set.seed(42069)
+
+# Train the model
+modelFit &lt;- train(classe ~ ., data = training, method = &quot;treebag&quot;, preProcess = c(&quot;pca&quot;), na.action = na.pass)</code></pre>
+<pre class="r"><code># Summary of the final model
+compact_summary &lt;- function(model) {
+        cat(&quot;Model Method:&quot;, model$method, &quot;\n&quot;)
+        cat(&quot;Number of Trees:&quot;, length(model$finalModel$frame), &quot;\n&quot;)
+        cat(&quot;Model Accuracy:&quot;, max(model$results$Accuracy), &quot;\n&quot;)
+        cat(&quot;Model Parameters:\n&quot;)
+        print(model$bestTune)
+}
+compact_summary(modelFit)</code></pre>
+<pre><code>## Model Method: treebag 
+## Number of Trees: 0 
+## Model Accuracy: 0.950648 
+## Model Parameters:
+##   parameter
+## 1      none</code></pre>
+<pre class="r"><code>confusionMatrix(predict(modelFit, newdata = validation), validation$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction   A   B   C   D   E
+##          A 558   0   0   0   0
+##          B   0 379   0   0   0
+##          C   0   0 342   0   1
+##          D   0   0   0 321   0
+##          E   0   0   0   0 359
+## 
+## Overall Statistics
+##                                      
+##                Accuracy : 0.9995     
+##                  95% CI : (0.9972, 1)
+##     No Information Rate : 0.2847     
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
+##                                      
+##                   Kappa : 0.9994     
+##                                      
+##  Mcnemar&#39;s Test P-Value : NA         
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   1.0000   1.0000   1.0000   0.9972
+## Specificity            1.0000   1.0000   0.9994   1.0000   1.0000
+## Pos Pred Value         1.0000   1.0000   0.9971   1.0000   1.0000
+## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   0.9994
+## Prevalence             0.2847   0.1934   0.1745   0.1638   0.1837
+## Detection Rate         0.2847   0.1934   0.1745   0.1638   0.1832
+## Detection Prevalence   0.2847   0.1934   0.1750   0.1638   0.1832
+## Balanced Accuracy      1.0000   1.0000   0.9997   1.0000   0.9986</code></pre>
+<pre class="r"><code># Predict on the testing dataset
+pred &lt;- predict(modelFit, newdata = testing)
+print(pred)</code></pre>
+<pre><code>##  [1] B A A A A E D B A A A C B A E E A B B B
+## Levels: A B C D E</code></pre>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
 <div id="ref-author2013" class="csl-entry">
 Velloso, E., A. Bulling, H. Gellersen, W. Ugulino, and H. Fuks. 2013.
@@ -427,6 +514,7 @@ Velloso, E., A. Bulling, H. Gellersen, W. Ugulino, and H. Fuks. 2013.
 Exercises.”</span> <em>Proceedings of 4th International Conference in
 Cooperation with SIGCHI (Augmented Human ’13). Stuttgart, Germany: ACM
 SIGCHI</em>.
+</div>
 </div>
 </div>
 

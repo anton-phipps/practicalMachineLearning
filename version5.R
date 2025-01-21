@@ -1,31 +1,12 @@
----
-title: "Excercise Classification based on Activity Dataset"
-output: html_document
-bibliography: references.bib
----
-
-## Summmary
-
-This is a study to analyze if you can predict exercise based on fitness readings. The data sets contain information measured to establish and categorize exercise activity based on various sensor data [@author2013].
-
-Predictions became quite accurate using a bagged tree method when explicitly looking at the data which was present in both the training and testing sets
-while using principal component analysis to reduce the dimensionality. Due to this, the normal visual analysis is not present. There is an accuracy table shown.
-
-```{r}
-# import the required libraries
+# Import the required libraries
 library(dplyr)
 library(caret)
 library(ISLR)
-library(rattle)
-```
 
-```{r}
 # Get the training and testing datasets from online and save to variables
 training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
 testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
-```
 
-```{r}
 # Remove near-zero variance predictors
 nzv <- nearZeroVar(training)
 training <- training[, -nzv]
@@ -56,43 +37,20 @@ common_cols <- intersect(names(training), names(testing))
 
 # Select common columns from both datasets
 training <- training[, c(common_cols, "classe")]
-
-# Split training for actual training and validation
-inTrain <- createDataPartition(y = training$classe, p = 0.9, list = FALSE)
-validation <- training[-inTrain, ]
-training <- training[inTrain, ]
-
 testing <- testing[, common_cols]
-```
 
-
-```{r cache=TRUE}
-set.seed(42069)
 # Set seed for reproducibility
 set.seed(42069)
 
 # Train the model
 modelFit <- train(classe ~ ., data = training, method = "treebag", preProcess = c("pca"), na.action = na.pass)
-```
 
-
-```{r}
 # Summary of the final model
-compact_summary <- function(model) {
-        cat("Model Method:", model$method, "\n")
-        cat("Number of Trees:", length(model$finalModel$frame), "\n")
-        cat("Model Accuracy:", max(model$results$Accuracy), "\n")
-        cat("Model Parameters:\n")
-        print(model$bestTune)
-}
-compact_summary(modelFit)
+summary(modelFit$finalModel)
 
-confusionMatrix(predict(modelFit, newdata = validation), validation$classe)
-```
-
-```{r}
 # Predict on the testing dataset
 pred <- predict(modelFit, newdata = testing)
 print(pred)
-```
-
+# Check the structure and first few predictions
+str(pred)
+head(pred)
